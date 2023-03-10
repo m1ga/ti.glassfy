@@ -1,7 +1,8 @@
-# ti.glassfy - Titanum module for glassfy
+# ti.glassfy - Titanium module for glassfy
 
 Make sure to check https://docs.glassfy.io/docs/configuration on how to setup your Play Store configuration.
 
+<i>Work in progress</i>
 
 ```js
 import glassfy from 'ti.glassfy';
