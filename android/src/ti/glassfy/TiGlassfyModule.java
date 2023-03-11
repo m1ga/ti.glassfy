@@ -19,10 +19,15 @@ import java.util.HashMap;
 import io.glassfy.androidsdk.Glassfy;
 import io.glassfy.androidsdk.GlassfyError;
 import io.glassfy.androidsdk.OfferingsCallback;
+import io.glassfy.androidsdk.PermissionsCallback;
+import io.glassfy.androidsdk.PurchaseCallback;
 import io.glassfy.androidsdk.SkuCallback;
 import io.glassfy.androidsdk.model.Offering;
 import io.glassfy.androidsdk.model.Offerings;
+import io.glassfy.androidsdk.model.Permission;
+import io.glassfy.androidsdk.model.Permissions;
 import io.glassfy.androidsdk.model.Sku;
+import io.glassfy.androidsdk.model.Transaction;
 
 
 @Kroll.module(name = "TiGlassfy", id = "ti.glassfy")
@@ -80,7 +85,7 @@ public class TiGlassfyModule extends KrollModule {
 
     @Kroll.method
     public void getSku(String sku) {
-        Glassfy.sku("premium_weekly", new SkuCallback() {
+        Glassfy.sku(sku, new SkuCallback() {
             @Override
             public void onResult(@Nullable Sku sku, @Nullable GlassfyError err) {
                 if (sku != null) {
@@ -90,6 +95,59 @@ public class TiGlassfyModule extends KrollModule {
                     kd.put("price", sku.getProduct().getPrice());
                     // sku.getExtravars();
                     fireEvent("sku", kd);
+                }
+            }
+        });
+    }
+
+    @Kroll.method
+    public void purchase(String skuName) {
+        Glassfy.sku(skuName, new SkuCallback() {
+            @Override
+            public void onResult(@Nullable Sku sku, @Nullable GlassfyError err) {
+                if (sku != null) {
+                    Glassfy.purchase(TiApplication.getAppCurrentActivity(), sku, new PurchaseCallback() {
+                        @Override
+                        public void onResult(@Nullable Transaction t, @Nullable GlassfyError err) {
+                            // update app status accordingly
+                            Permission permission = null;
+                            if (t != null) {
+                                for (Permission p : t.getPermissions().getAll()) {
+                                    if (p.getPermissionId().equals("aPermission")) {
+                                        permission = p;
+                                    }
+                                }
+                            }
+                            if (permission != null) {
+                                KrollDict kd = new KrollDict();
+                                kd.put("sku", skuName);
+                                kd.put("isValid", permission.isValid());
+                                fireEvent("purchase", kd);
+                            }
+                        }
+                    });
+                }
+            }
+        });
+    }
+    @Kroll.method
+    public void getPermissions() {
+        Glassfy.permissions(new PermissionsCallback() {
+            @Override
+            public void onResult(@Nullable Permissions permission, @Nullable GlassfyError error) {
+                if (permission != null) {
+                    KrollDict kd = new KrollDict();
+                    HashMap[] permissions = new HashMap[permission.getAll().size()];
+                    int i =0;
+                    for (Permission p: permission.getAll()) {
+                        KrollDict perm = new KrollDict();
+                        perm.put("id", p.getPermissionId());
+                        perm.put("isValid", p.isValid());
+                        permissions[i] = perm;
+                        ++i;
+                    }
+                    kd.put("permissions", permissions);
+                    fireEvent("permissions", kd);
                 }
             }
         });
